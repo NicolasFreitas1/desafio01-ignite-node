@@ -34,6 +34,7 @@ export const routes = [
         id: randomUUID(),
         title,
         description,
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: null,
       };
