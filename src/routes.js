@@ -15,12 +15,17 @@ export const routes = [
         "tasks",
         search
           ? {
-              title,
-              description,
+              title: search,
+              description: search,
             }
           : null
       );
-
+      if (tasks.length === 0)
+        return res.writeHead(404).end(
+          JSON.stringify({
+            error: "Não foi possível encontrar tarefas de acordo com o filtro",
+          })
+        );
       return res.end(JSON.stringify(tasks));
     },
   },
@@ -29,6 +34,11 @@ export const routes = [
     path: buildRoutePath("/tasks"),
     handler: (req, res) => {
       const { title, description } = req.body;
+
+      if (!title || !description)
+        return res
+          .writeHead(400)
+          .end(JSON.stringify({ error: "Titulo ou descrição vazio" }));
 
       const tasks = {
         id: randomUUID(),
@@ -42,6 +52,70 @@ export const routes = [
       database.insert("tasks", tasks);
 
       res.writeHead(201).end();
+    },
+  },
+  {
+    method: "PUT",
+    path: buildRoutePath("/tasks/:id"),
+    handler: (req, res) => {
+      const { id } = req.params;
+      const { title, description } = req.body;
+
+      if (!title && !description)
+        return res
+          .writeHead(400)
+          .end(JSON.stringify({ error: "Titulo ou descrição vazio" }));
+
+      const [task] = database.select("tasks", { id });
+
+      if (!task) {
+        return res.writeHead(404).end();
+      }
+
+      database.update("tasks", id, {
+        title,
+        description,
+        updatedAt: new Date(),
+      });
+      return res.writeHead(204).end();
+    },
+  },
+  {
+    method: "DELETE",
+    path: buildRoutePath("/tasks/:id"),
+    handler: (req, res) => {
+      const { id } = req.params;
+
+      const [task] = database.select("tasks", { id });
+
+      if (!task) {
+        return res.writeHead(404).end();
+      }
+
+      database.delete("tasks", id);
+
+      return res.writeHead(204).end();
+    },
+  },
+  {
+    method: "PATCH",
+    path: buildRoutePath("/tasks/:id/complete"),
+    handler: (req, res) => {
+      const { id } = req.params;
+
+      const [task] = database.select("tasks", { id });
+
+      if (!task) {
+        return res.writeHead(404).end();
+      }
+
+      const isTaskCompleted = !!task.completedAt;
+
+      const completedAt = isTaskCompleted ? null : new Date();
+
+      database.update("tasks", id, { completedAt });
+
+      return res.writeHead(204).end();
     },
   },
 ];
